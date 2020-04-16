@@ -30,8 +30,8 @@ object part2Exercise {
       .select(from_json(col("value"), carsSchema).as("car"))
       .selectExpr("car.*")
       .as[Car](carEncoder)
-
   }
+
   def exercise1() = {
 
     val cars = readCars()
@@ -44,8 +44,39 @@ object part2Exercise {
       .awaitTermination()
   }
 
+  def exercise2() = {
+
+    val cars = readCars()
+    val avgHP = cars.select(avg(col("Horsepower")))
+
+    avgHP.writeStream
+      .format("console")
+      .outputMode("complete")
+      .start()
+      .awaitTermination()
+  }
+
+  def exercise3() = {
+    val cars = readCars()
+
+    //By using DF API
+    val carsByOriginDF = cars.groupBy("Origin").count()
+
+    //By using DS API
+    import spark.implicits._
+    val carsByOriginDS = cars.groupByKey(_.Origin).count()
+
+    carsByOriginDF.writeStream
+      .format("console")
+      .outputMode("complete")
+      .start()
+      .awaitTermination()
+  }
+
   def main(args: Array[String]): Unit = {
-      exercise1()
+      //exercise1()
+      //exercise2()
+        exercise3()
   }
 
 }
