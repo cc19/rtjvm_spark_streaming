@@ -1,0 +1,138 @@
+++++++++++SPARK STREAMING+++++++++++
+
+SPARK Architecture:
+
+applications        -> Streaming  | ML |   GraphX  | Other libraries
+------------------------------------------------------------------------
+high level
+(structured APIs)   -> DataFrames | DataSets  |   Spark SQL
+------------------------------------------------------------------------
+low level APIs      -> Dstreams   |   RDDs    |   Distributed variables
+------------------------------------------------------------------------
+
+Spark - Gathers insights from a big data computation
+
+> Why do we need Spark Streaming?
+- Once we compute valuable, we need updates
+- We need continuous big data processing => Spark Streaming
+
+In batch processing, a fixed dataset is provided as input which is processed and it provides a fixed data as output.
+
+Stream processing
+- Includes new data to compute a result
+- No definitive end of incoming data
+- Batch Processing: operate on fixed dataset, compute result once
+- In practice, stream and batch interoperate e.g.
+:: incoming data joined with a fixed dataset
+:: output of a streaming job periodically queried by a batch job
+:: consistency between batch/streaming jobs (e.g bank account balance)
+
+Real life examples/use cases:
+- sensor readings
+- interactions with an appliction/website
+- credit card transactions
+- real time dashboards
+- alerts and notifications
+- incremental big data
+- incremental transactional data e.g. analytics or accounts
+- interactive machine learning
+
+Pros/Cons:
+
+:: Pros:-
+- Much lower latency than batch processing
+- Greater performance/efficiency (especially with incremental data)
+
+:: Cons:-
+- Maintaining state and order of incoming data. Solution: Event time processing
+- Exactly-once processing in the context of machine failures. Solution: Fault tolerance
+- Responding to events at low latency
+- Transactional data at runtime. Need to do it fast before the next stream of data arrives.
+- Updating business logic at runtime. Need to do it fast before the next stream of data arrives.
+
+Spark Streaming Principles:
+Declarative API
+- write "what" needs to be computed, let the library decide "how"
+- alternative RaaT (record-at-a-time)
+    > set of APIs to process each incoming element as it arrives
+    > low level and high control API- maintaining state and resource usage is your responsibility
+    > hard to develop
+
+Event time vs Processing time API
+- event time = when the event(record of data) was produced
+- processing time = when the record arrives at the Spark engine
+- event time is critical: allows detection of late data points with Watermarks
+ 
+ Continuous vs Micro-batch processing
+ - continuous = includes each data point as it arrives, we compute the data with every new record. Low latency because we only need to include one record with every recomputation.
+ - micro-batch = wait for a few data points, process them all in the new result. Higher throughput i.e we can process multiple records at a time.
+
+ Low Level DStreams vs High Level API (Structured streaming)
+
+Spark streaming operates on micro batches.
+
+
+# Spark Structured Streaming
+
+Structured streaming I/O
+
+High Level API
+- ease of development
+- interoperable with other SPark APIs
+- auto optimizations
+
+Spark Streaming Pricniples:
+- Lazy evaluation
+ Tranformations and Actions
+    > Tranformations describe how DFs are obtained 
+    > Actions start executing/running spark code
+- Input sources
+    > Kafka, Flume
+    > Databases like PostGres, Cassandra
+    > Distributed file system 
+    > sockets
+- Output sinks
+    > Distributed file system
+    > Databases
+    > Kafka
+    > Testing sinks e.g console, memory
+
+Streaming I/O 
+- Output modes
+    > append = only add new records
+    > update = modify records in place (if query has no aggregations, equivalent with append)
+    > complete = rewrite everything
+- Not all queries and sinks support all output modes
+- Triggers = when new data is written
+    > default: write as soon as the current micro-batch has been processed
+    > once: write a single micro batch and stop
+    > processing-time: look for new data at fixed intervals
+    > continuous (currently experimental)
+
+Streaming DataFrames: Summary
+- Streaming DFs can be read via a spark session
+- Streaming DFs have identical API to non streaming DF
+- Streaming DFs can be written via a call to the start method
+
+Aggregations: Summary
+- Same aggregation API as non-streaming DFs
+- Aggregations work at micro-batch level
+- The "append" output mode not supported without Watermarks
+- Some aggregations are not supported, e.g sorting, distinct, chained aggregations because for that spark will have to hold all data of that stream in memory
+
+# Streaming Joins
+
+Restrcited Joins
+- stream joining with static: right outer join, full outer join, right semi join, right anti join are not permitted
+- static joining with streaming: left outer join, full outer join, left semi join, left anti join are not permitted
+
+For stream joins with stream
+- inner joins supported
+- left/right outer joins are supported, but must have Watermarks
+- full outer joins are not supported
+
+Streaming Joins: Summary
+- Same join API as non streaming DFs
+- Some join types are not supported (Refer 'Restrcited Joins' above)
+- Stream-stream joins are supported (refer 'For stream joins with stream' above)
+
