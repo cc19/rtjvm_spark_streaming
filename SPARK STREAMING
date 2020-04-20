@@ -208,7 +208,7 @@ docker exec -it 741 bash        //741.... is the container id of Kafka
 bash-4.4# cd /opt/kafka_2.12-2.4.1
 
 **Starting the producer
-bash-4.4# bin/kafka-topics.sh --create --bootstrap-server localhost:9092 --replication-factor 1 --partitions 1 --topic chandua
+bash-4.4# bin/kafka-topics.sh --create --bootstrap-server localhost:9092 --replication-factor 1 --partitions 1 --topic chandua  //creating the producer
 bash-4.4# bin/kafka-console-producer.sh --broker-list localhost:9092 --topic chandua
 > <Enter your text here>
 
@@ -222,3 +222,22 @@ bash-4.4# bin/kafka-console-consumer.sh --bootstrap-server localhost:9092 --topi
 Kafka & Structured Streaming Summary:
 - Read like any other data source. Need to specify bootstrap server and topic
 - Write like any other data source. Need to specify bootstrap server, topic and checkpoint location
+
+DStreams and Kafka Summary:
+- More complex reading steps
+- First we need to setup a map of Kafka parameters  and we also need to create a direct stream using Kafka utils. In its argument, we need to supply the spark streaming context, the prefer
+consistent strategy and the subscribe consumer startegy. 
+- More complex writing, per rdd, per partition
+- We will need to process the stream before every partition and for every partition we need to set up a Kafka producer that is accessible by that executor which is processing the partition.
+Then we need to go through the partition record by record and then we will need to send each record to Kafka.
+- Points to remember during writing:
+    > We need to create the Kafka producer inside the lambda that is processing each partition because otherwise the Kafka producers are not serializable, not transmissible throughout the
+    spark cluster and writing will get screwed up.
+    > We need to create a Kafka message for every record. 
+    > When we are done, we need to close the producer so that the producer can flush its buffers.
+
+# JDBC Integration
+- We cannot read streams from JDBC
+- We cannot write to JDBC in a streaming fashion
+- But we can write batches using foreachBatch
+
