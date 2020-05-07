@@ -237,7 +237,93 @@ Then we need to go through the partition record by record and then we will need 
     > When we are done, we need to close the producer so that the producer can flush its buffers.
 
 # JDBC Integration
+./psql.sh - For connecting to dockerized jdbc
+Command inside the psql file: docker exec -it rockthejvm-sparkstreaming-postgres psql -U docker -d rtjvm
+
 - We cannot read streams from JDBC
 - We cannot write to JDBC in a streaming fashion
 - But we can write batches using foreachBatch
+
+# Cassandra Integration
+./cql.sh - For connecting to dockerized cassandra single node cluster
+Command inside the csql file: docker exec -it rockthejvm-sparkstreaming-cassandra cqlsh
+
+
+# Event time windows
+
+Event time: The moment when the record was generated
+Processing time: The moment when the record arrives at the spark
+
+Event time set by the data generation system. Usually a column in the dataset.
+
+Window functions:
+Aggregations on time based groups
+Essential concepts -
+* window durations
+* window sliding intervals
+
+As opposed to DStreams
+* records are not necessarily taken between "now" and a certain past date
+* we can control output modes
+
+Summary:
+- Can group streaming data into time-based groups
+- Window duration and sliding interval must be a multiple of the batch interval 
+- Output mode will influence results
+- Tumbling window has no sliding window whreas Sliding window has.
+
+
+# Processing Time windows: Summary
+
+- Add prcoessing time to existing records
+val linesDF = purchaseDF
+            .select(col("value"), current_timestamp().as("Processing_time"))
+
+- Do the window processing
+* Spark doesnot care what the time based column mean
+* The only criterion is that it should be of type timestamp
+
+- Window duration and sliding interval must be a multiple of the batch interval
+- The output mode chosen will influence results as usual
+
+
+# Watermarks
+= how far back we still consider records before dropping them
+
+Basically, a watermark is a threshold to specify how long the system waits for late events. If an arriving event lies within the watermark, it gets used to update a query. Otherwise, if it’s older than the watermark, it will be dropped and not further processed by the Streaming Engine.
+
+Assume watermark to be 10 mins
+On receiving each batch of data, spark will calculate the maximum time and the watermark as 10 mins earlier.
+Data Received at                            Max time                        Watermark (Max time - Watermark value)          Considered in computation
+-----------------                          ----------                      ---------------------------------------         ---------------------------
+ 5.01                                       5.01                                    4.51                                                Y
+ 5.04                                       5.04                                    4.54                                                Y
+ 5.11                                       5.11                                    5.01                                                Y
+ 5.19                                       5.19                                    5.09                                                Y            
+ 5.08                                       5.19                                    5.09                                                N
+
+Why do we need it?
+- In distributed and networked systems, there’s always a chance for disruption — nodes going down, sensors are loosing connection and so on and so forth. Because of that, it’s not guaranteed that data will arrive in a Stream Processing Engine in the order they were created. For the sake of fault tolerance it’s therefore necessary to handle such Out-of-Order data.
+To deal with this problem, the state of an aggregate must be preserved. In case a late event occurs, the query can then be reprocessed. But this means that the state of all aggregates must kept indefinitely, which causes the memory usage to grow to indefinitely too. And that is not practical in a real world scenario, unless the system has unlimited resources (resp. an unlimited budget). Therefore watermarking is a useful concept to constrain the system by design and prevent it from exploding at runtime.
+
+Summary:
+- Add watermarks to a time column 
+val enhancedDF = purchaseDF.withWatermark("created", "2 seconds")
+
+- With every batch, Spark will
+* update the max time ever recorded
+* update watermark as (max time - watermark duration)
+
+- Gurantees
+* in every batch, all records with time > watermark, will be considered
+* if using window functions, a window will be updated untill the watermark surpasses the window
+
+- No Gurantees
+* records whose time < watermark, will not necessarily be dropped though they are highly likely to.
+
+- Aggregations and joins in append mode need watermarks
+* a watermark allows spark to drop old records from state management.
+
+- withWatermark must be called on the same column as the timestamp column used in the aggregate.
+For example, df.withWatermark("time", "1 min").groupBy("time2").count() is invalid in Append output mode, as watermark is defined on a different column from the aggregation column.
 
