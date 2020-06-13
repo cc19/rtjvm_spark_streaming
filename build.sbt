@@ -51,5 +51,10 @@ libraryDependencies ++= Seq(
 
   // kafka
   "org.apache.kafka" %% "kafka" % kafkaVersion,
-  "org.apache.kafka" % "kafka-streams" % kafkaVersion
+  "org.apache.kafka" % "kafka-streams" % kafkaVersion,
+
+  //mongodb
+  "org.mongodb.spark" %% "mongo-spark-connector" % "2.4.1",
+  "org.apache.spark" %% "spark-core" % "2.4.1",
+  "org.apache.spark" %% "spark-sql" % "2.4.1"
 )
